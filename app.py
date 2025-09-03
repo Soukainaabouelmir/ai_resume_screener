@@ -11,17 +11,16 @@ from datetime import datetime
 import base64
 from io import BytesIO
 
-# Imports pour ML/NLP
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.decomposition import LatentDirichletAllocation 
 from sklearn.feature_extraction.text import CountVectorizer
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import WordNetLemmatizer
 
-# Configuration de la page
+
 st.set_page_config(
     page_title="AI Resume Screener Pro", 
     page_icon="", 
@@ -29,7 +28,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# CSS pour améliorer l'apparence
 st.markdown("""
 <style>
     .main-header {
@@ -65,7 +63,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialisation NLTK (avec gestion d'erreur)
 @st.cache_resource
 def init_nltk():
     try:
@@ -76,10 +73,8 @@ def init_nltk():
     except:
         return False
 
-# ---- FONCTIONS UTILITAIRES ----
 
 def extract_text_from_pdf(pdf_file):
-    """Extraction de texte améliorée avec gestion d'erreurs"""
     text = ""
     try:
         with pdfplumber.open(pdf_file) as pdf:
@@ -144,7 +139,8 @@ def extract_experience_years(text):
     return max(years) if years else 0
 
 def calculate_advanced_similarity(cv_text, job_text):
-    
+  
+
     cv_processed = preprocess_text(cv_text)
     job_processed = preprocess_text(job_text)
     
@@ -158,7 +154,6 @@ def calculate_advanced_similarity(cv_text, job_text):
     except:
         tfidf_score = 0
     
-    # 2. Overlap de mots-clés
     cv_words = set(cv_processed.split())
     job_words = set(job_processed.split())
     
@@ -167,7 +162,6 @@ def calculate_advanced_similarity(cv_text, job_text):
     else:
         word_overlap = 0
     
-    # 3. Score sémantique simplifié (basé sur les n-grammes)
     try:
         vectorizer_2gram = TfidfVectorizer(ngram_range=(2, 3), max_features=500)
         ngram_matrix = vectorizer_2gram.fit_transform([cv_processed, job_processed])
@@ -182,7 +176,6 @@ def calculate_advanced_similarity(cv_text, job_text):
     }
 
 def generate_recommendations(cv_text, job_text, similarity_scores, skills_match):
-    """Génération de recommandations personnalisées"""
     recommendations = []
     
     # Score global
@@ -195,7 +188,6 @@ def generate_recommendations(cv_text, job_text, similarity_scores, skills_match)
     else:
         recommendations.append("🟢 **Bon score**: Votre profil correspond bien à l'offre !")
     
-    # Recommandations basées sur les compétences
     missing_skills = []
     for category, skills in skills_match.items():
         if not skills:
@@ -204,7 +196,6 @@ def generate_recommendations(cv_text, job_text, similarity_scores, skills_match)
     if missing_skills:
         recommendations.append(f"**Compétences à développer**: {', '.join(missing_skills)}")
     
-    # Recommandations spécifiques
     if similarity_scores['word_overlap'] < 0.2:
         recommendations.append(" **Mots-clés**: Intégrez plus de termes spécifiques de l'offre d'emploi.")
     
@@ -213,17 +204,13 @@ def generate_recommendations(cv_text, job_text, similarity_scores, skills_match)
     
     return recommendations
 
-# ---- INTERFACE PRINCIPALE ----
 
 def main():
-    # En-tête
     st.markdown('<h1 class="main-header"> AI Resume Screener Pro</h1>', unsafe_allow_html=True)
     st.markdown("---")
     
-    # Initialisation NLTK
     init_nltk()
     
-    # Sidebar pour la configuration
     with st.sidebar:
         st.header("Configuration")
         
@@ -247,7 +234,6 @@ def main():
         - Visualisations interactives
         """)
     
-    # Interface principale
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -261,7 +247,6 @@ def main():
         if uploaded_cv:
             st.success(f" CV téléversé: {uploaded_cv.name}")
             
-            # Aperçu du CV
             with st.expander("Aperçu du contenu"):
                 cv_text = extract_text_from_pdf(uploaded_cv)
                 if cv_text:
@@ -281,12 +266,11 @@ def main():
             word_count = len(job_description.split())
             st.info(f" {word_count} mots détectés")
     
-    # Définition des catégories de compétences
     skill_categories = {
         "Techniques": [
             "Python", "JavaScript", "Java", "C++", "React", "Node.js", "SQL", "MongoDB",
             "Docker", "Kubernetes", "AWS", "Azure", "Git", "Machine Learning", "AI",
-            "Data Science", "TensorFlow", "PyTorch", "Pandas", "NumPy"
+            "Data Science", "TensorFlow", "PyTorch", "Pandas", "NumPy",'Laravel'
         ],
         "Gestion": [
             "Management", "Leadership", "Scrum", "Agile", "Project Management",
@@ -297,20 +281,17 @@ def main():
             "Negotiation", "Customer Service", "Training"
         ],
         "Langues": [
-            "English", "French", "Spanish", "German", "Mandarin", "Bilingual", "Multilingual"
+            "English", "French", "Spanish", "German", "Mandarin", "Bilingual", "Multilingual","Français"
         ]
     }
     
-    # Analyse principale
     if uploaded_cv and job_description and len(job_description.strip()) > 50:
         st.markdown("---")
         st.header(" Analyse en Cours...")
         
-        # Barre de progression
         progress_bar = st.progress(0)
         status_text = st.empty()
         
-        # Extraction du texte
         status_text.text("Extraction du texte du CV...")
         progress_bar.progress(20)
         cv_text = extract_text_from_pdf(uploaded_cv)
@@ -319,27 +300,22 @@ def main():
             st.error(" Impossible d'analyser le CV. Vérifiez le format du fichier.")
             return
         
-        # Calcul des similarités
         status_text.text("Calcul des scores de similarité...")
         progress_bar.progress(50)
         similarity_scores = calculate_advanced_similarity(cv_text, job_description)
         
-        # Extraction des compétences
         status_text.text("Analyse des compétences...")
         progress_bar.progress(70)
         skills_found = extract_skills(cv_text, skill_categories)
         job_skills = extract_skills(job_description, skill_categories)
         
-        # Extraction de l'expérience
         status_text.text("Analyse de l'expérience...")
         progress_bar.progress(90)
         experience_years = extract_experience_years(cv_text)
         
-        # Finalisation
         progress_bar.progress(100)
         status_text.text("Analyse terminée !")
         
-        # Effacement de la barre de progression
         progress_bar.empty()
         status_text.empty()
         
@@ -347,7 +323,6 @@ def main():
         st.markdown("---")
         st.header("Résultats de l'Analyse")
         
-        # Métriques principales
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
@@ -364,14 +339,12 @@ def main():
         with col4:
             st.metric("Années d'Expérience", f"{experience_years} ans")
         
-        # Graphiques de visualisation
         if show_detailed_metrics:
             st.markdown("###  Métriques Détaillées")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                # Graphique radar des scores
                 categories = list(similarity_scores.keys())
                 values = list(similarity_scores.values())
                 
@@ -441,7 +414,7 @@ def main():
                         st.write("Aucune compétence spécifique détectée dans l'offre.")
         
         if include_recommendations:
-            st.markdown("###  Recommandations Personnalisées")
+            st.markdown("### Recommandations Personnalisées")
             
             recommendations = generate_recommendations(
                 cv_text, job_description, similarity_scores, skills_found
@@ -455,10 +428,8 @@ def main():
                 else:
                     st.markdown(f'<div class="success-card">{recommendation}</div>', unsafe_allow_html=True)
         
-        # Section de téléchargement du rapport
         st.markdown("###  Télécharger le Rapport")
         
-        # Génération du rapport en format texte
         report = f"""
 RAPPORT D'ANALYSE CV - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 {'='*60}
@@ -479,11 +450,9 @@ COMPÉTENCES DÉTECTÉES:
         
         report += "\n\nRECOMMANDATIONS:\n"
         for rec in recommendations:
-            # Nettoyage des emojis pour le rapport texte
             clean_rec = re.sub(r'[🔴🟡🟢]', '', rec)
             report += f"- {clean_rec}\n"
         
-        # Bouton de téléchargement
         st.download_button(
             label="Télécharger le rapport complet",
             data=report,
